@@ -25,7 +25,8 @@ requests.packages.urllib3.disable_warnings()
 ssl._create_default_https_context = ssl._create_unverified_context
 
 if os.getenv("VCAP_APP_PORT"):
-    print "you are running in CF"
+    print("you are running in CF")
+
 
 def debugger():
     return os.getenv("VCAP_APP_PORT")
@@ -35,17 +36,17 @@ def debugger():
 
 def server_connection():
     SI = None
-    print host
-    print user
+    print(host)
+    print(user)
     # Attempt to connect to the VCSA
     try:
         SI = connect.SmartConnect(host=host, user=user, pwd=pwd,)
         atexit.register(connect.Disconnect, SI)
-    except IOError, ex:
+    except IOError:
         pass
 
     if not SI:
-        print "Unable to connect to host with supplied info."
+        print("Unable to connect to host with supplied info.")
 
     return SI
 
@@ -90,7 +91,7 @@ def get_all_vm_info():
     try:
         service_instance = server_connection()
         if service_instance is None:
-            print "Couldn't get the server instance"
+            print("Couldn't get the server instance")
         full_vm_list = []
         content = service_instance.RetrieveContent()
         # vm_json_return = []
@@ -105,7 +106,7 @@ def get_all_vm_info():
             return full_vm_list
 
     except vmodl.MethodFault as error:
-        print "Caught vmodl fault : " + error.msg
+        print("Caught vmodl fault : {0}".format(error.msg))
         return -1
 
     return 0
@@ -131,7 +132,7 @@ def print_short_detail_list(vm_summary):
     hostDetails.update(product=b)
     del hostDetails['featureVersion']
     fullData.update(host=hostDetails)
-    print a.quickStats
+    print(a.quickStats)
     return fullData
 
 # Find a specific vm based on the instance UUID
@@ -209,7 +210,7 @@ def add_network(vm, si, content, netName="VM Network"):
     network_spec.operation = vim.vm.device.VirtualDeviceSpec.Operation.add
     network_spec.device = vim.vm.device.VirtualVmxnet3()
     # network_spec.device.addressType = "GeneratedAutomatically"
-    print "Getting a network..."
+    print("Getting a network...")
     # Get network type
     for net in content.rootFolder.childEntity[0].network:
         if net.name == netName:
@@ -231,7 +232,7 @@ def add_network(vm, si, content, netName="VM Network"):
                 network_spec.device.backing.deviceName = netName
                 break
             else:
-                print "This name is not a network"
+                print("This name is not a network")
 
     # Allow the network card to be hot swappable
     network_spec.device.connectable = vim.vm.device.VirtualDevice.ConnectInfo()
@@ -275,7 +276,7 @@ def create_scsi_controller(vm, si):
     tasks.wait_for_tasks(si, task)
     for dev in vm.config.hardware.device:
         if isinstance(dev, vim.vm.device.VirtualSCSIController):
-            print "Found our controller"
+            print("Found our controller")
             return dev
 
 # Helper function to add a disk to a vm
@@ -293,11 +294,11 @@ def add_disk(vm, si, disk_size=30):
             if unit_number == 7:
                 unit_number += 1
             if unit_number >= 16:
-                print "we don't support this many disks"
+                print("we don't support this many disks")
                 return
         if isinstance(dev, vim.vm.device.VirtualSCSIController):
             controller = dev
-            print "We have a controller"
+            print("We have a controller")
         # add disk here
         dev_changes = []
         new_disk_kb = int(disk_size) * 1024 * 1024
@@ -311,7 +312,7 @@ def add_disk(vm, si, disk_size=30):
         disk_spec.device.unitNumber = unit_number
         disk_spec.device.capacityInKB = new_disk_kb
         if controller is None:
-            print "Creating new controller"
+            print("Creating new controller")
             controller = create_scsi_controller(vm, si)
         disk_spec.device.controllerKey = controller.key
         dev_changes.append(disk_spec)
@@ -348,7 +349,7 @@ def create_new_vm(specs):
                                numCPUs=int(specs['cpus']), files=vmx_file,
                                guestId=specs['guestid'], version=str(specs['vm_version']))
 
-    print "Creating VM {}...".format(vm_name)
+    print("Creating VM {0}...".format(vm_name))
     task = vm_folder.CreateVM_Task(config=config, pool=resource_pool)
     tasks.wait_for_tasks(SI, [task])
     path = datastore_path + '/' + vm_name + '.vmx'
