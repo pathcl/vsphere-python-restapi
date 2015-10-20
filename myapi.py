@@ -1,39 +1,42 @@
-from flask import Flask, url_for, request, jsonify
+from flask import Flask, request, jsonify
+from werkzeug.contrib.cache import MemcachedCache
+
 import methods
-import json
-import os
 app = Flask(__name__)
 
 
-port = int(os.getenv('VCAP_APP_PORT', 8080))
+# Defines cache object
+CACHE_TIMEOUT = 3000
+cache = MemcachedCache(['127.0.0.1:11211'])
 
-# with open('config.json') as data_file:
-#    data = json.load(data_file)
-#
-# host=data["host"]
-# user=data["username"]
-# pwd=data["password"]
+
+class cached(object):
+
+    def __init__(self, timeout=None):
+        self.timeout = timeout or CACHE_TIMEOUT
+
+    def __call__(self, f):
+        def decorator(*args, **kwargs):
+            response = cache.get(request.path)
+            if response is None:
+                response = f(*args, **kwargs)
+                cache.set(request.path, response, self.timeout)
+            return response
+        return decorator
 
 
 @app.route('/')
 def index():
-    return 'Welcome to the VMware REST API!'
+    return 'HAI!'
 
 
-@app.route('/debug')
-def debug():
-    return methods.debugger()
+@app.route('/vms/<host>/', methods=['GET'])
+@cached()
+def get_vms(host):
+    return jsonify(vm=methods.get_all_vm_info(host))
 
 
-@app.route('/vms/', methods=['GET', 'POST'])
-def get_vms():
-    if request.method == 'POST':
-        specs = request.get_json()
-        return jsonify(vm=methods.create_new_vm(specs))
-    else:
-        return jsonify(vm=methods.get_all_vm_info())
-
-
+"""
 @app.route('/vms/<uuid>/', methods=['GET', 'PUT', 'DELETE'])
 def get_vm(uuid):
     if request.method == 'DELETE':
@@ -43,7 +46,7 @@ def get_vm(uuid):
         return methods.change_vm_stats(uuid, specs)
     else:
         return jsonify(methods.find_vm_by_uuid(uuid))
-
+"""
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=8080, debug=True)

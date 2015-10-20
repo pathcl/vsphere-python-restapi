@@ -2,9 +2,8 @@
 
 import atexit
 import json
-import os
 import requests
-import ssl
+# import ssl
 
 from pyVim import connect
 from pyVmomi import vmodl
@@ -15,32 +14,23 @@ from tools import tasks
 with open('config.json') as data_file:
     data = json.load(data_file)
 
-host = data["host"]
 user = data["username"]
 pwd = data["password"]
+port = data["port"]
 
 # This allows the API to work in corp environments
 requests.packages.urllib3.disable_warnings()
 
-ssl._create_default_https_context = ssl._create_unverified_context
-
-if os.getenv("VCAP_APP_PORT"):
-    print("you are running in CF")
-
-
-def debugger():
-    return os.getenv("VCAP_APP_PORT")
 
 # Create a connection to the vcsa
 
-
-def server_connection():
+def server_connection(host):
     SI = None
     print(host)
     print(user)
     # Attempt to connect to the VCSA
     try:
-        SI = connect.SmartConnect(host=host, user=user, pwd=pwd,)
+        SI = connect.SmartConnect(host=host, user=user, pwd=pwd, port=int(port))
         atexit.register(connect.Disconnect, SI)
     except IOError:
         pass
@@ -60,7 +50,6 @@ def print_vm_info(virtual_machine, depth=1, full_vm_list=None):
     folder with depth protection
     """
     maxdepth = 20
-    vm_json = {}
     # if this is a group it will have children. if it does, recurse into them
     # and then return
     if hasattr(virtual_machine, 'childEntity'):
@@ -81,15 +70,22 @@ def print_vm_info(virtual_machine, depth=1, full_vm_list=None):
     summary = virtual_machine.summary
     if hasattr(summary.config, 'product'):
         del vars(summary.config)['product']
-    full_vm_list.append(vars(summary.config))
+    vmdata = {}
+    vmdata["name"] = summary.config.name
+    vmdata["ipaddr"] = summary.guest.ipAddress
+    vmdata["uuid"] = summary.config.instanceUuid
+    vmdata["state"] = summary.runtime.powerState
+    vmdata["host"] = summary.runtime.host.name
+    vmdata["os"] = summary.guest.guestFullName
+    full_vm_list.append(vmdata)
     return
 
 # Root function for get a full list of vms
 
 
-def get_all_vm_info():
+def get_all_vm_info(host):
     try:
-        service_instance = server_connection()
+        service_instance = server_connection(host)
         if service_instance is None:
             print("Couldn't get the server instance")
         full_vm_list = []

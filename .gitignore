@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Config
+
+config.json
+
 # Distribution / packaging
 .Python
 env/
@@ -56,3 +60,6 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# vim swap 
+*.py.swp
