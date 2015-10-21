@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 
 # Defines cache object
-CACHE_TIMEOUT = 3000
+CACHE_TIMEOUT = 300
 cache = MemcachedCache(['127.0.0.1:11211'])
 
 
@@ -36,17 +36,15 @@ def get_vms(host):
     return jsonify(vm=methods.get_all_vm_info(host))
 
 
-"""
-@app.route('/vms/<uuid>/', methods=['GET', 'PUT', 'DELETE'])
-def get_vm(uuid):
+@app.route('/vms/<host>/<uuid>/', methods=['GET', 'PUT', 'DELETE'])
+def get_vm(host, uuid):
     if request.method == 'DELETE':
-        return methods.delete_vm_from_server(uuid)
+        return methods.delete_vm_from_server(host, uuid)
     elif request.method == 'PUT':
         specs = request.get_json()
         return methods.change_vm_stats(uuid, specs)
     else:
-        return jsonify(methods.find_vm_by_uuid(uuid))
-"""
+        return jsonify(vm=methods.find_vm_by_uuid(host, uuid))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)

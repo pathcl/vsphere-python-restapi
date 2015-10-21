@@ -107,40 +107,28 @@ def get_all_vm_info(host):
 
     return 0
 
-# Helper function to print a short list of vm details
-
-
-def print_short_detail_list(vm_summary):
-    a = vm_summary
-    del vars(a.config)['product']
-    del vars(a.runtime)['device']
-    del vars(a.runtime)['offlineFeatureRequirement']
-    del vars(a.runtime)['featureRequirement']
-    fullData = vars(a.config)
-    fullData.update(guest=vars(a.guest))
-    fullData.update(storage=vars(a.storage))
-    fullData.update({"overallStatus": a.overallStatus})
-    fullData.update({"powerState": a.runtime.powerState})
-    fullData.update({"bootTime": a.runtime.bootTime})
-    b = vars(a.runtime.host.summary.config.product)
-    del vars(a.runtime.host.summary.config)['product']
-    hostDetails = vars(a.runtime.host.summary.config)
-    hostDetails.update(product=b)
-    del hostDetails['featureVersion']
-    fullData.update(host=hostDetails)
-    print(a.quickStats)
-    return fullData
 
 # Find a specific vm based on the instance UUID
 
 
-def find_vm_by_uuid(uuid):
-    si = server_connection()
+def find_vm_by_uuid(host, uuid):
+    si = server_connection(host)
     search_index = si.content.searchIndex
     vm = search_index.FindByUuid(None, uuid, True, True)
+    full_vm_list = []
+    summary = vm.summary
     if vm is None:
         return {"not_found": {"uuid": uuid}}
-    return print_short_detail_list(vm.summary)
+    else:
+        vmdata = {}
+        vmdata["name"] = summary.config.name
+        vmdata["ipaddr"] = summary.guest.ipAddress
+        vmdata["uuid"] = summary.config.instanceUuid
+        vmdata["state"] = summary.runtime.powerState
+        vmdata["host"] = summary.runtime.host.name
+        vmdata["os"] = summary.guest.guestFullName
+        full_vm_list.append(vmdata)
+    return full_vm_list
 
 # Delete a vm from the server based on the uuid
 
