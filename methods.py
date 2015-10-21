@@ -166,9 +166,9 @@ def delete_vm_from_server(host, uuid):
 # the cpu and memory
 
 
-def change_vm_stats(uuid, specs):
+def change_vm_stats(host, uuid, specs):
     # Get server object
-    SI = server_connection()
+    SI = server_connection(host)
 
     # Find the vm to change
     VM = SI.content.searchIndex.FindByUuid(None, uuid, True, True)
@@ -179,7 +179,7 @@ def change_vm_stats(uuid, specs):
 
     if 'mem' in specs:
         task = VM.ReconfigVM_Task(
-            vim.vm.ConfigSpec(memoryMB=long(specs['mem'])))
+            vim.vm.ConfigSpec(memoryMB=int(specs['mem'])))
         tasks.wait_for_tasks(SI, [task])
 
     return "I fixed it!"
@@ -305,8 +305,29 @@ def add_disk(vm, si, disk_size=30):
 
 # Core create vm function that handles generating all the neccasary part
 
+def print_short_detail_list(vm_summary):
+    a = vm_summary
+    del vars(a.config)['product']
+    del vars(a.runtime)['device']
+    del vars(a.runtime)['offlineFeatureRequirement']
+    del vars(a.runtime)['featureRequirement']
+    fullData = vars(a.config)
+    fullData.update(guest = vars(a.guest))
+    fullData.update(storage = vars(a.storage))
+    fullData.update({"overallStatus":a.overallStatus})
+    fullData.update({"powerState":a.runtime.powerState})
+    fullData.update({"bootTime":a.runtime.bootTime})
+    b = vars(a.runtime.host.summary.config.product)
+    del vars(a.runtime.host.summary.config)['product']
+    hostDetails = vars(a.runtime.host.summary.config)
+    hostDetails.update(product = b)
+    del hostDetails['featureVersion']
+    fullData.update(host = hostDetails)
+    print(a.quickStats)
+    return fullData
 
-def create_new_vm(specs):
+
+def create_new_vm(host, specs):
     """Creates a dummy VirtualMachine with 1 vCpu, 128MB of RAM.
     :param name: String Name for the VirtualMachine
     :param SI: ServiceInstance connection
@@ -314,7 +335,7 @@ def create_new_vm(specs):
     :param resource_pool: ResourcePool to place the VirtualMachine in
     :param datastore: DataStrore to place the VirtualMachine on
     """
-    SI = server_connection()
+    SI = server_connection(host)
     content = SI.RetrieveContent()
     datacenter = content.rootFolder.childEntity[0]
     vm_folder = datacenter.vmFolder
@@ -329,7 +350,7 @@ def create_new_vm(specs):
     vmx_file = vim.vm.FileInfo(logDirectory=None, snapshotDirectory=None, suspendDirectory=None,
                                vmPathName=datastore_path)
 
-    config = vim.vm.ConfigSpec(name=specs['name'], memoryMB=long(specs['mem']),
+    config = vim.vm.ConfigSpec(name=specs['name'], memoryMB=int(specs['mem']),
                                numCPUs=int(specs['cpus']), files=vmx_file,
                                guestId=specs['guestid'], version=str(specs['vm_version']))
 
@@ -337,6 +358,10 @@ def create_new_vm(specs):
     task = vm_folder.CreateVM_Task(config=config, pool=resource_pool)
     tasks.wait_for_tasks(SI, [task])
     path = datastore_path + '/' + vm_name + '.vmx'
+
+
+"""
+BROKEN!!!
 
     # Verify the shell was created
     new_vm = content.searchIndex.FindByDatastorePath(datacenter, path)
@@ -356,6 +381,8 @@ def create_new_vm(specs):
         new_vm.PowerOnVM_Task()
 
         # Respond with the vm summary
-        return print_short_detail_list(new_vm.summary)
+        return vm_name
     else:
-        return "Could not create vm"
+        return "Error!
+
+"""

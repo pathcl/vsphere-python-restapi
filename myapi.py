@@ -30,10 +30,14 @@ def index():
     return 'HAI!'
 
 
-@app.route('/vms/<host>/', methods=['GET'])
-@cached()
+@app.route('/vms/<host>/', methods=['GET', 'POST'])
+# @cached()
 def get_vms(host):
-    return jsonify(vm=methods.get_all_vm_info(host))
+    if request.method == 'POST':
+        specs = request.get_json()
+        return jsonify(vm = methods.create_new_vm(host, specs))
+    else:
+        return jsonify(vm = methods.get_all_vm_info(host))
 
 
 @app.route('/vms/<host>/<uuid>/', methods=['GET', 'PUT', 'DELETE'])
@@ -42,9 +46,9 @@ def get_vm(host, uuid):
         return methods.delete_vm_from_server(host, uuid)
     elif request.method == 'PUT':
         specs = request.get_json()
-        return methods.change_vm_stats(uuid, specs)
+        return methods.change_vm_stats(host, uuid, specs)
     else:
         return jsonify(vm=methods.find_vm_by_uuid(host, uuid))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='127.0.0.1', port=8080, debug=True)

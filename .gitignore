@@ -62,4 +62,6 @@ docs/_build/
 target/
 
 # vim swap 
-*.py.swp
+*.swp
+# no need to modify
+sample-payload.json
