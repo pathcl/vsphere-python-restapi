@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 
 # Defines cache object
-CACHE_TIMEOUT = 300
+CACHE_TIMEOUT = 30
 cache = MemcachedCache(['127.0.0.1:11211'])
 
 

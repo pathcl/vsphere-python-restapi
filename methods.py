@@ -133,9 +133,9 @@ def find_vm_by_uuid(host, uuid):
 # Delete a vm from the server based on the uuid
 
 
-def delete_vm_from_server(uuid):
+def delete_vm_from_server(host, uuid):
     # Get Server connection
-    SI = server_connection()
+    SI = server_connection(host)
     if SI is None:
         return "Unable to connect to server"
 
