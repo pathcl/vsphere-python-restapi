@@ -2,7 +2,6 @@
 
 import atexit
 import json
-import os
 import requests
 import ssl
 
@@ -15,32 +14,23 @@ from tools import tasks
 with open('config.json') as data_file:
     data = json.load(data_file)
 
-host = data["host"]
 user = data["username"]
 pwd = data["password"]
 
 # This allows the API to work in corp environments
 requests.packages.urllib3.disable_warnings()
 
-ssl._create_default_https_context = ssl._create_unverified_context
-
-if os.getenv("VCAP_APP_PORT"):
-    print("you are running in CF")
-
-
-def debugger():
-    return os.getenv("VCAP_APP_PORT")
-
 # Create a connection to the vcsa
 
-
-def server_connection():
+def server_connection(host):
     SI = None
     print(host)
     print(user)
     # Attempt to connect to the VCSA
     try:
-        SI = connect.SmartConnect(host=host, user=user, pwd=pwd,)
+        context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        context.verify_mode = ssl.CERT_NONE
+        SI = connect.SmartConnect(host=host, user=user, pwd=pwd, sslContext=context)
         atexit.register(connect.Disconnect, SI)
     except IOError:
         pass
@@ -87,9 +77,9 @@ def print_vm_info(virtual_machine, depth=1, full_vm_list=None):
 # Root function for get a full list of vms
 
 
-def get_all_vm_info():
+def get_all_vm_info(host):
     try:
-        service_instance = server_connection()
+        service_instance = server_connection(host)
         if service_instance is None:
             print("Couldn't get the server instance")
         full_vm_list = []
